@@ -68,6 +68,117 @@ def astar_pursuer(arena: Arena, agent: int) -> int:
                 heapq.heappush(frontier, (priority, new_cost, next_cell, first))
     return STAY  # No route to any evader.
 
+def genetic_strategy(arena: Arena, agent: int, opponents: np.ndarray, sign:int,) ->int:
+    population_size = 15
+    generations = 10
+    chromosome_length = 5
+    mutation_rate = 0.1
 
-EVADER_STRATEGIES = {"random": random_strategy, "greedy": greedy_evader}
-PURSUER_STRATEGIES = {"random": random_strategy, "greedy": greedy_pursuer, "astar": astar_pursuer}
+    rng = arena.rng
+
+    if len(opponents) == 0:
+        return STAY
+
+    population = rng.integers(
+        0,
+        len(MOVES),
+        size=(population_size, chromosome_length)
+    )
+
+
+    def fitness(chromosome):
+
+        position = arena.positions[agent].copy()
+        total_score = 0
+
+        for action in chromosome:
+
+            new_position = position + MOVES[action]
+
+            if arena.is_free(*new_position):
+                position = new_position
+
+            distance = nearest_distance(position, opponents)
+
+            total_score += sign * distance
+
+        return total_score
+
+
+    for generation in range(generations):
+
+        scores = [fitness(chromosome) for chromosome in population]
+
+        new_population = []
+
+      
+        best_index = int(np.argmax(scores))
+        new_population.append(population[best_index].copy())
+
+  
+        while len(new_population) < population_size:
+
+
+            def select_parent():
+
+                candidates = rng.choice(
+                    population_size,
+                    size=3,
+                    replace=False
+                )
+
+                winner = max(candidates, key=lambda i: scores[i])
+
+                return population[winner]
+
+            parent1 = select_parent()
+            parent2 = select_parent()
+
+
+            if chromosome_length > 1:
+                point = int(rng.integers(1, chromosome_length))
+                child = np.concatenate((
+                    parent1[:point],
+                    parent2[point:]
+                ))
+            else:
+                child = parent1.copy()
+
+
+            for i in range(chromosome_length):
+
+                if rng.random() < mutation_rate:
+                    child[i] = rng.integers(0, len(MOVES))
+
+            new_population.append(child)
+
+        population = np.array(new_population)
+
+ 
+    final_scores = [fitness(chromosome) for chromosome in population]
+
+    best_index = int(np.argmax(final_scores))
+
+    best_chromosome = population[best_index]
+
+    return int(best_chromosome[0])
+    #pass
+
+def genetic_evader(arena: Arena, agent: int) -> int:
+    return genetic_strategy(
+        arena,
+        agent,
+        arena.pursuers,
+        1
+    )
+
+
+def genetic_pursuer(arena: Arena, agent: int) -> int:
+    return genetic_strategy(
+        arena,
+        agent,
+        arena.evaders,
+        -1
+    )
+EVADER_STRATEGIES = {"random": random_strategy, "greedy": greedy_evader,"genetic":genetic_evader}
+PURSUER_STRATEGIES = {"random": random_strategy, "greedy": greedy_pursuer, "astar": astar_pursuer,"genetic":genetic_pursuer}
