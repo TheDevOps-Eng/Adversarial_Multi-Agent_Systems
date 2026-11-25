@@ -57,7 +57,6 @@ def main():
             )
 
         args.radius = trained_radius
-
         pursuer_policy = mlp_strategy(model)
 
     else:
