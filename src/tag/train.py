@@ -114,11 +114,14 @@ def train(args):
             int(rng.integers(0, 2**31 - 1))
         )
 
+        # Randomly select an evader strategy for each episode.
         evader_name = str(rng.choice(evader_names))
         evader_policy = EVADER_STRATEGIES[evader_name]
 
         episode_return = 0.0
         was_caught = False
+
+        epsilon = args.epsilon_start
 
         for step in range(args.max_steps):
 
@@ -358,7 +361,6 @@ def main():
     )
 
     parser.add_argument("--seed", type=int, default=7)
-
     parser.add_argument("--cpu", action="store_true")
 
     parser.add_argument("--hidden-size", type=int, default=256)
@@ -394,4 +396,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
